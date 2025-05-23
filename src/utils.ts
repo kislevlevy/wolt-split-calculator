@@ -1,4 +1,4 @@
-import type { Person } from "./types";
+import type { Person, BillingMode } from "./types";
 
 /**
  * Calculate the final amount each person should pay, rounding up to integers
@@ -7,7 +7,8 @@ import type { Person } from "./types";
 export const calculateFinalAmounts = (
   people: Person[],
   deliveryFee: number,
-  serviceFee: number
+  serviceFee: number,
+  billingMode: BillingMode = "amount"
 ): Person[] => {
   if (people.length === 0) return [];
 
@@ -22,13 +23,86 @@ export const calculateFinalAmounts = (
     return distributeFees(people, deliveryFee, serviceFee);
   }
 
+  if (billingMode === "percentage") {
+    return calculateProportionalFees(
+      people,
+      deliveryFee,
+      serviceFee,
+      hostIndex
+    );
+  }
+
+  return calculateEvenFees(people, deliveryFee, serviceFee, hostIndex);
+};
+
+/**
+ * Calculate with fees split evenly between all people (regular mode)
+ */
+const calculateEvenFees = (
+  people: Person[],
+  deliveryFee: number,
+  serviceFee: number,
+  hostIndex: number
+): Person[] => {
+  const totalFees = deliveryFee + serviceFee;
+  const feePerPerson = totalFees / people.length;
+
+  // Calculate each person's total (order + equal share of fees)
+  const result = people.map((person) => {
+    if (person.isHost) {
+      // We'll calculate the host's amount last
+      return { ...person };
+    }
+
+    // Handle NaN values
+    const personAmount = isNaN(person.amount) ? 0 : person.amount;
+
+    // Each person pays their order + equal share of fees, rounded up
+    const rawTotal = personAmount + feePerPerson;
+    const finalAmount = Math.ceil(rawTotal);
+
+    return { ...person, finalAmount };
+  });
+
+  // Calculate how much the non-host people are paying in total
+  const nonHostTotal = result
+    .filter((person) => !person.isHost)
+    .reduce((sum, person) => sum + (person.finalAmount || 0), 0);
+
+  // Calculate total order amount
+  const totalOrderAmount = people.reduce(
+    (sum, person) => sum + (isNaN(person.amount) ? 0 : person.amount),
+    0
+  );
+
+  // The host pays whatever is left to reach the grand total
+  const grandTotal = totalOrderAmount + totalFees;
+  const hostTotal = Math.max(0, grandTotal - nonHostTotal);
+
+  // Update the host's amount
+  if (hostIndex !== -1) {
+    result[hostIndex] = { ...result[hostIndex], finalAmount: hostTotal };
+    return result;
+  }
+
+  return result;
+};
+
+/**
+ * Calculate with fees split proportionally based on order amounts (percentage mode)
+ */
+const calculateProportionalFees = (
+  people: Person[],
+  deliveryFee: number,
+  serviceFee: number,
+  hostIndex: number
+): Person[] => {
   // Calculate total order amount (excluding fees)
   const totalOrderAmount = people.reduce(
     (sum, person) => sum + (isNaN(person.amount) ? 0 : person.amount),
     0
   );
 
-  // Calculate total fees
   const totalFees = deliveryFee + serviceFee;
 
   // Calculate each person's share of the fees proportionally to their order amount
@@ -44,7 +118,7 @@ export const calculateFinalAmounts = (
     // Calculate the proportion of fees this person should pay
     const feeShare = (personAmount / totalOrderAmount) * totalFees;
 
-    // Calculate total amount (order + fees) and round up to integer
+    // Calculate total amount (order + proportional fees) and round up to integer
     const rawTotal = personAmount + feeShare;
     const finalAmount = Math.ceil(rawTotal);
 
@@ -62,16 +136,13 @@ export const calculateFinalAmounts = (
   // The host pays whatever is left to reach the grand total
   const hostTotal = Math.max(0, grandTotal - nonHostTotal);
 
-  // Update the host's amount directly rather than mapping the entire array again
+  // Update the host's amount
   if (hostIndex !== -1) {
     result[hostIndex] = { ...result[hostIndex], finalAmount: hostTotal };
     return result;
   }
 
-  // Fallback to the original approach if host index wasn't found
-  return result.map((person) =>
-    person.isHost ? { ...person, finalAmount: hostTotal } : person
-  );
+  return result;
 };
 
 /**

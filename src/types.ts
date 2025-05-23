@@ -6,8 +6,11 @@ export interface Person {
   finalAmount?: number;
 }
 
+export type BillingMode = "amount" | "percentage";
+
 export interface CalculatorState {
   people: Person[];
   deliveryFee: number;
   serviceFee: number;
+  billingMode: BillingMode;
 }

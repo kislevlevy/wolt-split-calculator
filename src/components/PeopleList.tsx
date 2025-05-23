@@ -2,14 +2,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   PersonList,
   PersonItem,
+  PersonInfo,
   PersonName,
   PersonAmount,
+  PersonFinalAmount,
   Tag,
   IconButton,
 } from "../styles";
 import type { Person } from "../types";
-import { formatCurrency } from "../utils";
-import { theme } from "../theme";
 
 interface PeopleListProps {
   people: Person[];
@@ -17,51 +17,74 @@ interface PeopleListProps {
 }
 
 export const PeopleList = ({ people, onRemovePerson }: PeopleListProps) => {
+  const formatAmount = (amount: number) => {
+    return `₪${amount.toFixed(2)}`;
+  };
+
+  const formatFinalAmount = (amount: number | undefined) => {
+    if (amount === undefined) return "";
+    return `₪${amount.toFixed(2)}`;
+  };
+
   if (people.length === 0) {
-    return <p>No people added yet. Add someone to get started!</p>;
+    return null;
   }
 
   return (
     <PersonList>
-      <AnimatePresence>
-        {people.map((person) => (
+      <AnimatePresence mode="popLayout">
+        {people.map((person, index) => (
           <motion.div
             key={person.id}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2, delay: index * 0.05 }}
+            layout
           >
             <PersonItem>
-              <div>
-                <PersonName>
-                  {person.name}
-                  {person.isHost && <Tag>Host</Tag>}
-                </PersonName>
+              <PersonInfo>
                 <div
-                  style={{
-                    color: theme.colors.comment,
-                    fontSize: "0.9rem",
-                    marginTop: "4px",
-                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
-                  Order: ₪{formatCurrency(person.amount)}
+                  <PersonName>{person.name}</PersonName>
+                  {person.isHost && <Tag>Host</Tag>}
                 </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <PersonAmount>
-                  Pay: ₪
-                  {person.finalAmount !== undefined
-                    ? formatCurrency(person.finalAmount)
-                    : formatCurrency(person.amount)}
-                </PersonAmount>
-                <IconButton
-                  onClick={() => onRemovePerson(person.id)}
-                  style={{ marginLeft: "8px" }}
+
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "16px" }}
                 >
-                  ✕
-                </IconButton>
-              </div>
+                  <PersonAmount>
+                    Order: {formatAmount(person.amount)}
+                  </PersonAmount>
+
+                  {person.finalAmount !== undefined && (
+                    <PersonFinalAmount>
+                      Pays: {formatFinalAmount(person.finalAmount)}
+                    </PersonFinalAmount>
+                  )}
+                </div>
+              </PersonInfo>
+
+              <IconButton
+                onClick={() => onRemovePerson(person.id)}
+                aria-label={`Remove ${person.name}`}
+                title={`Remove ${person.name}`}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </IconButton>
             </PersonItem>
           </motion.div>
         ))}

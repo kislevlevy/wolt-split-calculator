@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Form, InputGroup, Label, Input, Button } from "../styles";
+import { Form, InputGroup, Input, Label, Button, ButtonGroup } from "../styles";
 
 interface FeesFormProps {
   deliveryFee: number;
@@ -7,6 +7,7 @@ interface FeesFormProps {
   onDeliveryFeeChange: (fee: number) => void;
   onServiceFeeChange: (fee: number) => void;
   onCalculate: () => void;
+  hasCalculated: boolean;
 }
 
 export const FeesForm = ({
@@ -15,55 +16,53 @@ export const FeesForm = ({
   onDeliveryFeeChange,
   onServiceFeeChange,
   onCalculate,
+  hasCalculated,
 }: FeesFormProps) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onCalculate();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onCalculate();
-        }}
-        style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}
-      >
-        <InputGroup style={{ flex: "1" }}>
-          <Label htmlFor="deliveryFee">Delivery Fee</Label>
+      <Form onSubmit={handleSubmit}>
+        <InputGroup>
+          <Label htmlFor="deliveryFee">Delivery Fee ₪</Label>
           <Input
             id="deliveryFee"
             type="number"
             value={deliveryFee || ""}
-            onChange={(e) =>
-              onDeliveryFeeChange(parseFloat(e.target.value) || 0)
-            }
-            placeholder="0.00"
+            onChange={(e) => onDeliveryFeeChange(Number(e.target.value) || 0)}
+            placeholder="5.00"
             step="0.01"
             min="0"
+            autoComplete="off"
           />
         </InputGroup>
 
-        <InputGroup style={{ flex: "1" }}>
-          <Label htmlFor="serviceFee">Service Fee</Label>
+        <InputGroup>
+          <Label htmlFor="serviceFee">Service Fee ₪</Label>
           <Input
             id="serviceFee"
             type="number"
             value={serviceFee || ""}
-            onChange={(e) =>
-              onServiceFeeChange(parseFloat(e.target.value) || 0)
-            }
-            placeholder="0.00"
+            onChange={(e) => onServiceFeeChange(Number(e.target.value) || 0)}
+            placeholder="3.50"
             step="0.01"
             min="0"
+            autoComplete="off"
           />
         </InputGroup>
 
-        <div
-          style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}
-        >
-          <Button type="submit">Calculate</Button>
-        </div>
+        <ButtonGroup>
+          <Button type="submit">
+            {hasCalculated ? "Recalculate" : "Calculate Split"}
+          </Button>
+        </ButtonGroup>
       </Form>
     </motion.div>
   );
